@@ -3,12 +3,12 @@ version: "3"
 services:
   notebook:
     build: .
-    image: ml_dev
+    image: jupyter
     volumes:
-      - C:/Users/ortiz/Developer/End2End_ML_V3/.:/home/
+      - .:/home/
     ports:
       - 8888:8888
-    container_name: ml_development
+    container_name: jupyter
 
   backend:
     #restart: always
