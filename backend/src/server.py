@@ -17,41 +17,66 @@ with open('../../models/mnist_keras_model.json') as f:
     model.load_weights("../../models/mnist_keras_model.h5")
     model.compile()
 
+def decode_compress_image(image):
+    _, encoded = image.split(",", 1)
+    data = b64decode(encoded)
+
+    with open("image.png", "wb") as f:
+        f.write(data)
+        
+    image = Image.open('image.png')
+    image = image.resize((28, 28))
+    image_data = asarray(image)[:,:,3]
+    image_data = image_data.flatten()
+    image = (image_data - min(image_data))/ ptp(image_data)
+    image = image.reshape((1, 28,28, 1))
+    return image
+
 # define a predict function as an endpoint 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = {"success": False}
-
     content = flask.request.json
 
-    number = content["data"]
+    image = content["data"]
 
-    if number is None:
+    if image is None:
         return flask.jsonify({"success": False, "error": "No input"})
 
     try:
-        header, encoded = number.split(",", 1)
-        data = b64decode(encoded)
-
-        with open("image.png", "wb") as f:
-            f.write(data)
-            
-        image = Image.open('image.png')
-        image = image.resize((28, 28))
-        image_data = asarray(image)[:,:,3]
-        image_data = image_data.flatten()
-        number = (image_data - min(image_data))/ ptp(image_data)
-        number = number.reshape((1, 28,28, 1))
+        image = decode_compress_image(image)
     except:
         return flask.jsonify({"success": False, "error": "Failed to parse data."})
 
-    predictions = model.predict(number)
-    max_accuracy = max(predictions[0])
+    predictions = model.predict(image)
     most_likely = argmax(predictions[0])
 
     predictions = [float(x) * 100 for x in predictions[0]]
 
     return flask.jsonify({"success": True, "prediction": int(most_likely), "predictions": predictions}) 
+
+# define a correction function as an endpoint 
+@app.route("/correction", methods=["POST"])
+def correction():
+    content = flask.request.json
+
+    image = content["image"]
+    number = content["number"]
+
+    try:
+        number = int(number)
+        print(number)
+    except:
+        return flask.jsonify({"success": False, "error": "Can not parse number..."})
+
+
+    if number is None or number < 0 or number > 10:
+        return flask.jsonify({"success": False, "error": "Number was not between 0 and 9"})
+
+    try:
+        image = decode_compress_image(image)
+    except:
+        return flask.jsonify({"success": False, "error": "Failed to parse data."})
+    return flask.jsonify({"success": True}) 
 
 @app.route("/", methods=["GET"])
 def root_route():
