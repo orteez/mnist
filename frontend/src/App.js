@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 
 import { SketchField, Tools } from 'react-sketch';
+import {PYTHON_BACKEND} from "./urls";
 
 import { ListGroup, ListGroupItem, Container, Button, Modal, ModalBody, ModalFooter, ModalHeader, InputGroup, Input } from 'reactstrap';
 
@@ -17,7 +18,7 @@ function App() {
 
   const onSubmit = async () => {
     const image = sketch.toDataURL();
-    const resp = await fetch("/predict", {
+    const resp = await fetch(PYTHON_BACKEND + "/predict", {
       method: 'POST',
       mode: 'cors', // no-cors, *cors, same-origin
       cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -62,8 +63,8 @@ function App() {
       return;
     }
 
-    const image = sketch.toDataURL();
-    const resp = await fetch("/correction", {
+    const image = null || sketch.toDataURL();
+    const resp = await fetch(PYTHON_BACKEND + "/correction", {
       method: 'POST',
       mode: 'cors', // no-cors, *cors, same-origin
       cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
@@ -72,7 +73,7 @@ function App() {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ "data": image, "number": correctNumber })
+      body: JSON.stringify({ "image": image, "number": correctNumber })
     })
 
     if(!resp.ok) {
