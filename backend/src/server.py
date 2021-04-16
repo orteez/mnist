@@ -5,8 +5,15 @@ import requests
 from keras.models import load_model, model_from_json
 from base64 import b64decode
 from PIL import Image
-from io import BytesIO
+import io
+import boto3
+import datetime
 from numpy import asarray, min, ptp, argmax
+import logging
+
+BUCKET_NAME='ortiz-mnist'
+
+client = boto3.client('s3')
 
 # instantiate flask 
 app = flask.Flask(__name__)
@@ -21,14 +28,10 @@ def decode_compress_image(image):
     _, encoded = image.split(",", 1)
     data = b64decode(encoded)
 
-    with open("image.png", "wb") as f:
-        f.write(data)
-        
-    image = Image.open('image.png')
+    image = Image.open(io.BytesIO(data))
     image = image.resize((28, 28))
     image_data = asarray(image)[:,:,3]
-    image_data = image_data.flatten()
-    image = (image_data - min(image_data))/ ptp(image_data)
+    image = (image_data - min(image_data)) / ptp(image_data)
     image = image.reshape((1, 28,28, 1))
     return image
 
@@ -57,6 +60,7 @@ def predict():
 # define a correction function as an endpoint 
 @app.route("/correction", methods=["POST"])
 def correction():
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     content = flask.request.json
 
     image = content["image"]
@@ -64,19 +68,23 @@ def correction():
 
     try:
         number = int(number)
-        print(number)
     except:
         return flask.jsonify({"success": False, "error": "Can not parse number..."})
 
-
+    # Check if the number for the correction is within the normal range of digits
     if number is None or number < 0 or number > 10:
         return flask.jsonify({"success": False, "error": "Number was not between 0 and 9"})
 
     try:
         image = decode_compress_image(image)
-    except:
-        return flask.jsonify({"success": False, "error": "Failed to parse data."})
-    return flask.jsonify({"success": True}) 
+        body = image.flatten().tobytes()
+    except Exception as e:
+        print(e)
+        return flask.jsonify({"success": False, "error": "Failed to parse image."})
+
+    resp = client.put_object(Body=body, Bucket=BUCKET_NAME, Key='images/ortiz-{}-{}.txt'.format(timestamp, number))
+
+    return flask.jsonify(resp) 
 
 @app.route("/", methods=["GET"])
 def root_route():

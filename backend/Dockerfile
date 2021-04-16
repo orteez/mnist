@@ -1,6 +1,8 @@
 # set base image (host OS)
 FROM python:3.8
 
+COPY .aws .aws/
+
 # set the working directory in the container
 WORKDIR /backend/src
 

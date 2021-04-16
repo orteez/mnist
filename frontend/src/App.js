@@ -18,6 +18,7 @@ function App() {
 
   const onSubmit = async () => {
     const image = sketch.toDataURL();
+    console.log(image)
     const resp = await fetch(PYTHON_BACKEND + "/predict", {
       method: 'POST',
       mode: 'cors', // no-cors, *cors, same-origin
